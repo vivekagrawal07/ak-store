@@ -1,6 +1,6 @@
 const API_URL = import.meta.env.PROD 
-  ? 'https://ak-store-vivekagrawal07.vercel.app/api'
-  : 'http://localhost:5000/api';
+  ? 'https://ak-store-server-vivekagrawal07.vercel.app'
+  : 'http://localhost:5000';
 
 export const getApiUrl = (endpoint: string) => {
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
