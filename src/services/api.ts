@@ -3,7 +3,7 @@ import { Product, Category, StockMovement } from '../types/inventory';
 
 const isProd = import.meta.env.PROD;
 const API_BASE_URL = isProd 
-  ? 'http://localhost:5000'
+  ? 'https://ak-store-server.vercel.app'
   : 'http://localhost:5000';
 
 console.log('Environment:', isProd ? 'production' : 'development');
