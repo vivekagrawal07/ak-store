@@ -1,9 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { testConnection } from './config/database';
+import { testConnection, initializeDatabase } from './config/database';
 import { productRoutes } from './routes/product.routes';
 import { authRoutes } from './routes/auth.routes';
+import { categoryRoutes } from './routes/category.routes';
+import { stockMovementRoutes } from './routes/stock-movement.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 // Load environment variables
@@ -16,9 +18,8 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
-  'https://ak-store-nine.vercel.app',
-  'https://ak-store-server.vercel.app'
-];
+  process.env.CORS_ORIGIN
+].filter(Boolean);
 
 app.use(cors({
   origin: function(origin, callback) {
@@ -57,19 +58,36 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Test database connection
-testConnection();
-
 // API routes
-app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/stock-movements', stockMovementRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
 
-// Start server
+// Initialize database and start server
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-}); 
+const startServer = async () => {
+  try {
+    // Test database connection
+    await testConnection();
+    
+    // Initialize database tables
+    await initializeDatabase();
+    
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV}`);
+      console.log(`CORS origins: ${allowedOrigins.join(', ')}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer(); 
