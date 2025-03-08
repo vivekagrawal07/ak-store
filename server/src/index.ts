@@ -5,7 +5,6 @@ import { testConnection, initializeDatabase } from './config/database';
 import { productRoutes } from './routes/product.routes';
 import { authRoutes } from './routes/auth.routes';
 import { categoryRoutes } from './routes/category.routes';
-import { stockMovementRoutes } from './routes/stock-movement.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 // Load environment variables
@@ -15,29 +14,16 @@ dotenv.config();
 const app = express();
 
 // CORS configuration
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  process.env.CORS_ORIGIN
-].filter(Boolean);
-
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
+  origin: ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Body parser middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Basic routes
 app.get('/', (req, res) => {
@@ -62,7 +48,6 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/stock-movements', stockMovementRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
@@ -74,20 +59,34 @@ const startServer = async () => {
   try {
     // Test database connection
     await testConnection();
+    console.log('Database connection successful');
     
     // Initialize database tables
     await initializeDatabase();
+    console.log('Database tables initialized successfully');
     
     // Start server
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV}`);
-      console.log(`CORS origins: ${allowedOrigins.join(', ')}`);
+      console.log('CORS enabled for:', ['http://localhost:5173', 'http://localhost:3000']);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
   }
 };
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (error) => {
+  console.error('Unhandled Rejection:', error);
+  process.exit(1);
+});
 
 startServer(); 

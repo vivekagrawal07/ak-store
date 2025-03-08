@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { auth } from '../middleware/auth.middleware';
 import {
   getProducts,
   getProduct,
@@ -11,7 +11,7 @@ import {
 const router = Router();
 
 // Apply auth middleware to all product routes
-router.use(authMiddleware);
+router.use(auth);
 
 // Product routes
 router.get('/', getProducts);

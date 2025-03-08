@@ -8,6 +8,7 @@ const pool = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  port: 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -103,19 +104,6 @@ export const initializeDatabase = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
-      )
-    `);
-
-    // Create stock_movements table
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS stock_movements (
-        id VARCHAR(36) PRIMARY KEY,
-        product_id VARCHAR(36) NOT NULL,
-        type ENUM('IN', 'OUT') NOT NULL,
-        quantity INT NOT NULL,
-        notes TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
       )
     `);
 
