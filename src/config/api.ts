@@ -1,5 +1,5 @@
 const API_URL = import.meta.env.PROD 
-  ? 'http://localhost:5000'
+  ?" https://ak-store-nine.vercel.app"
   : 'http://localhost:5000';
 
 export const getApiUrl = (endpoint: string) => {
