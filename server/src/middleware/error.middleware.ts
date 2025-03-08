@@ -7,9 +7,28 @@ export const errorHandler = (
   next: NextFunction
 ) => {
   console.error(err.stack);
+
+  if (err instanceof SyntaxError) {
+    return res.status(400).json({
+      message: 'Invalid request syntax'
+    });
+  }
+
+  // Handle specific error types
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      message: err.message
+    });
+  }
+
+  if (err.name === 'UnauthorizedError') {
+    return res.status(401).json({
+      message: 'Authentication required'
+    });
+  }
+
+  // Default error
   res.status(500).json({
-    success: false,
-    message: 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    message: 'Internal server error'
   });
 }; 

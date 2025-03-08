@@ -8,29 +8,48 @@ const pool = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  port: Number(process.env.DB_PORT) || 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
-  ssl: process.env.NODE_ENV === 'production' ? {
+  ssl: {
     rejectUnauthorized: true
-  } : undefined
+  }
 });
 
-// Test the connection
+// Test database connection
 const testConnection = async () => {
   try {
     const connection = await pool.getConnection();
-    console.log('Database connected successfully');
+    console.log('Database connection successful');
     connection.release();
   } catch (error) {
-    console.error('Error connecting to the database:', error);
+    console.error('Database connection failed:', error);
+    process.exit(1);
   }
 };
 
-if (process.env.NODE_ENV !== 'production') {
-  testConnection();
-}
+testConnection();
 
-export default pool; 
+export const db = {
+  query: async <T>(sql: string, params?: any[]): Promise<T> => {
+    const [rows] = await pool.execute(sql, params);
+    return rows as T;
+  },
+  
+  transaction: async <T>(callback: (connection: mysql.Connection) => Promise<T>): Promise<T> => {
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      const result = await callback(connection);
+      await connection.commit();
+      return result;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+}; 

@@ -5,42 +5,52 @@ import { productRoutes } from './routes/product.routes';
 import { authRoutes } from './routes/auth.routes';
 import { errorHandler } from './middleware/error.middleware';
 
+// Load environment variables
 dotenv.config();
 
+// Create Express app
 const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://ak-store-vivekagrawal07.vercel.app', 'https://ak-store-git-main-vivekagrawal07.vercel.app']
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://ak-store-vivekagrawal07.vercel.app']
     : 'http://localhost:5173',
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
 
-// Health check route
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
+// Basic routes
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Welcome to AK Store API',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  });
 });
 
-// Routes
-app.use('/api/products', productRoutes);
-app.use('/api/auth', authRoutes);
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'Server is running',
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  });
+});
 
-// Error handling
+// API routes
+app.use('/auth', authRoutes);
+app.use('/products', productRoutes);
+
+// Error handling middleware
 app.use(errorHandler);
 
-// For local development
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
-}
-
-// For Vercel
-export default app;
-
-// For Vercel serverless functions
-module.exports = app; 
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+}); 
