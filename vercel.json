@@ -20,5 +20,15 @@
       "src": "/(.*)",
       "dest": "/dist/$1"
     }
-  ]
+  ],
+  "env": {
+    "VITE_API_URL": "http://localhost:5000/api",
+    "VITE_PROD_API_URL": "https://your-backend-url.com/api"
+  },
+  "build": {
+    "env": {
+      "VITE_API_URL": "http://localhost:5000/api",
+      "VITE_PROD_API_URL": "https://your-backend-url.com/api"
+    }
+  }
 } 

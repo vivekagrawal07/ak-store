@@ -2,7 +2,9 @@ import axios from 'axios';
 import type { InternalAxiosRequestConfig } from 'axios';
 import { Product, Category, StockMovement } from '../types/inventory';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.PROD
+  ? import.meta.env.VITE_PROD_API_URL
+  : import.meta.env.VITE_API_URL;
 
 interface User {
   id: string;
@@ -20,6 +22,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true
 });
 
 // Add token to requests if available

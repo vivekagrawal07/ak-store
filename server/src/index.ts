@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { testConnection } from './config/database';
 import { productRoutes } from './routes/product.routes';
 import { authRoutes } from './routes/auth.routes';
 import { errorHandler } from './middleware/error.middleware';
@@ -11,14 +12,25 @@ dotenv.config();
 // Create Express app
 const app = express();
 
-// Middleware
+// CORS configuration
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://ak-store-nine.vercel.app'
+];
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://ak-store-vivekagrawal07.vercel.app']
-    : 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
 }));
 
 app.use(express.json());
@@ -42,9 +54,12 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Test database connection
+testConnection();
+
 // API routes
-app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/auth', authRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
@@ -52,14 +67,6 @@ app.use(errorHandler);
 // Start server
 const PORT = process.env.PORT || 5000;
 
-// Test database connection before starting server
-import { testConnection } from './config/database';
-
-testConnection().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}).catch((error) => {
-  console.error('Failed to connect to database:', error);
-  process.exit(1);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 }); 
