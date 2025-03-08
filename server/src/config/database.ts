@@ -4,16 +4,55 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'password',
-  database: process.env.DB_NAME || 'ak_store',
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-export const db = pool;
+// Database interface with enhanced functionality
+export const db = {
+  query: async <T>(sql: string, params?: any[]): Promise<[T, mysql.FieldPacket[]]> => {
+    try {
+      const result = await pool.execute(sql, params);
+      return result as [T, mysql.FieldPacket[]];
+    } catch (error) {
+      console.error('Database query error:', {
+        sql,
+        params,
+        error
+      });
+      throw error;
+    }
+  },
+  
+  getConnection: async () => {
+    return await pool.getConnection();
+  },
+
+  transaction: async <T>(callback: (connection: mysql.Connection) => Promise<T>): Promise<T> => {
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      const result = await callback(connection);
+      await connection.commit();
+      return result;
+    } catch (error) {
+      await connection.rollback();
+      console.error('Transaction error:', error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+};
 
 export const testConnection = async () => {
   try {
@@ -85,38 +124,5 @@ export const initializeDatabase = async () => {
   } catch (error) {
     console.error('Error initializing database tables:', error);
     process.exit(1);
-  }
-};
-
-export const db = {
-  query: async <T>(sql: string, params?: any[]): Promise<[T, mysql.FieldPacket[]]> => {
-    try {
-      const result = await pool.execute(sql, params);
-      return result as [T, mysql.FieldPacket[]];
-    } catch (error) {
-      console.error('Database query error:', {
-        sql,
-        params,
-        error
-      });
-      throw error;
-    }
-  },
-  
-  transaction: async <T>(callback: (connection: mysql.Connection) => Promise<T>): Promise<T> => {
-    const connection = await pool.getConnection();
-    await connection.beginTransaction();
-    
-    try {
-      const result = await callback(connection);
-      await connection.commit();
-      return result;
-    } catch (error) {
-      await connection.rollback();
-      console.error('Transaction error:', error);
-      throw error;
-    } finally {
-      connection.release();
-    }
   }
 }; 
