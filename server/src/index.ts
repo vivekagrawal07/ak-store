@@ -14,12 +14,7 @@ dotenv.config();
 const app = express();
 
 // CORS configuration
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors());
 
 // Body parser middleware
 app.use(express.json());
@@ -68,8 +63,6 @@ const startServer = async () => {
     // Start server
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV}`);
-      console.log('CORS enabled for:', ['http://localhost:5173', 'http://localhost:3000']);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
