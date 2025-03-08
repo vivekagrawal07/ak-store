@@ -3,8 +3,8 @@ import { Product, Category, StockMovement } from '../types/inventory';
 
 const isProd = import.meta.env.PROD;
 const API_BASE_URL = isProd 
-  ? (import.meta.env.VITE_PROD_API_URL || 'https://ak-store-git-main-vivek-agrawal-projects.vercel.app/api')
-  : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
+  ? 'https://ak-store-server.vercel.app'
+  : 'http://localhost:5000';
 
 console.log('Environment:', isProd ? 'production' : 'development');
 console.log('API Base URL:', API_BASE_URL);
@@ -36,12 +36,19 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
+}, (error) => {
+  console.error('Request Error:', error);
+  return Promise.reject(error);
 });
 
 // Add response interceptor for better error handling
 api.interceptors.response.use(
   (response) => {
-    console.log('Response:', response.status);
+    console.log('Response:', {
+      status: response.status,
+      url: response.config.url,
+      method: response.config.method
+    });
     return response;
   },
   (error) => {
@@ -52,7 +59,8 @@ api.interceptors.response.use(
       config: {
         url: error.config?.url,
         method: error.config?.method,
-        baseURL: error.config?.baseURL
+        baseURL: error.config?.baseURL,
+        headers: error.config?.headers
       }
     });
     throw error;
@@ -62,11 +70,19 @@ api.interceptors.response.use(
 // Auth API
 export const authApi = {
   login: async (credentials: { email: string; password: string }) => {
-    const response = await api.post<AuthResponse>('/auth/login', credentials);
+    const response = await api.post<AuthResponse>('/api/auth/login', credentials);
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
     return response;
   },
   register: async (credentials: { name: string; email: string; password: string }) => {
-    const response = await api.post<AuthResponse>('/auth/register', credentials);
+    const response = await api.post<AuthResponse>('/api/auth/register', credentials);
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
     return response;
   },
   logout: () => {
@@ -78,26 +94,26 @@ export const authApi = {
 // Products API
 export const productsApi = {
   getAll: (params?: { search?: string; category?: string; page?: number; limit?: number }) => 
-    api.get<{ data: Product[]; total: number }>('/products', { params }),
-  getById: (id: string) => api.get<Product>(`/products/${id}`),
-  create: (product: Omit<Product, 'id'>) => api.post<Product>('/products', product),
-  update: (id: string, product: Partial<Product>) => api.put<Product>(`/products/${id}`, product),
-  delete: (id: string) => api.delete(`/products/${id}`),
+    api.get<{ data: Product[]; total: number }>('/api/products', { params }),
+  getById: (id: string) => api.get<Product>(`/api/products/${id}`),
+  create: (product: Omit<Product, 'id'>) => api.post<Product>('/api/products', product),
+  update: (id: string, product: Partial<Product>) => api.put<Product>(`/api/products/${id}`, product),
+  delete: (id: string) => api.delete(`/api/products/${id}`),
 };
 
 // Categories API
 export const categoriesApi = {
-  getAll: () => api.get<Category[]>('/categories'),
-  getById: (id: string) => api.get<Category>(`/categories/${id}`),
-  create: (category: Omit<Category, 'id'>) => api.post<Category>('/categories', category),
-  update: (id: string, category: Partial<Category>) => api.put<Category>(`/categories/${id}`, category),
-  delete: (id: string) => api.delete(`/categories/${id}`),
+  getAll: () => api.get<Category[]>('/api/categories'),
+  getById: (id: string) => api.get<Category>(`/api/categories/${id}`),
+  create: (category: Omit<Category, 'id'>) => api.post<Category>('/api/categories', category),
+  update: (id: string, category: Partial<Category>) => api.put<Category>(`/api/categories/${id}`, category),
+  delete: (id: string) => api.delete(`/api/categories/${id}`),
 };
 
 // Stock Movements API
 export const stockMovementsApi = {
-  getAll: () => api.get<StockMovement[]>('/stock-movements'),
-  create: (movement: Omit<StockMovement, 'id'>) => api.post<StockMovement>('/stock-movements', movement),
+  getAll: () => api.get<StockMovement[]>('/api/stock-movements'),
+  create: (movement: Omit<StockMovement, 'id'>) => api.post<StockMovement>('/api/stock-movements', movement),
 };
 
 export default api; 
