@@ -7,8 +7,10 @@ import {
   Button,
   Box,
   Link,
+  Alert,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { getApiUrl } from '../config/api';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -16,6 +18,7 @@ const Login = () => {
     password: '',
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,8 +31,11 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
+
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(getApiUrl('/auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,6 +53,8 @@ const Login = () => {
       }
     } catch (err) {
       setError('Failed to login. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -85,6 +93,7 @@ const Login = () => {
               autoFocus
               value={formData.email}
               onChange={handleChange}
+              disabled={loading}
             />
             <TextField
               margin="normal"
@@ -97,19 +106,21 @@ const Login = () => {
               autoComplete="current-password"
               value={formData.password}
               onChange={handleChange}
+              disabled={loading}
             />
             {error && (
-              <Typography color="error" sx={{ mt: 1 }}>
+              <Alert severity="error" sx={{ mt: 2 }}>
                 {error}
-              </Typography>
+              </Alert>
             )}
             <Button
               type="submit"
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
+              disabled={loading}
             >
-              Sign In
+              {loading ? 'Signing in...' : 'Sign In'}
             </Button>
             <Box sx={{ textAlign: 'center' }}>
               <Link href="/register" variant="body2">
