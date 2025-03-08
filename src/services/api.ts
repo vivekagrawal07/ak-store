@@ -3,7 +3,7 @@ import { Product, Category, StockMovement } from '../types/inventory';
 
 const isProd = import.meta.env.PROD;
 const API_BASE_URL = isProd 
-  ? 'https://ak-store-server.vercel.app'
+  ? 'http://localhost:5000'
   : 'http://localhost:5000';
 
 console.log('Environment:', isProd ? 'production' : 'development');
@@ -25,7 +25,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true
+  withCredentials: false
 });
 
 // Add request interceptor for debugging
