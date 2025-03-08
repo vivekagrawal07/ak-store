@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -11,13 +11,14 @@ import {
 } from '@mui/material';
 import { Product } from '../types/inventory';
 
-interface AddProductModalProps {
+interface EditProductModalProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (product: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => void;
+  onSave: (id: string, product: Partial<Product>) => void;
+  product: Product;
 }
 
-const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
+const EditProductModal = ({ open, onClose, onSave, product }: EditProductModalProps) => {
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -31,6 +32,17 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
     quantity: false,
     category: false,
   });
+
+  useEffect(() => {
+    if (product) {
+      setFormData({
+        name: product.name,
+        price: product.price.toString(),
+        quantity: product.quantity.toString(),
+        category: product.category,
+      });
+    }
+  }, [product]);
 
   const validateForm = () => {
     const newErrors = {
@@ -65,31 +77,17 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
       return;
     }
 
-    onAdd({
+    onSave(product.id, {
       name: formData.name.trim(),
       price: parseFloat(formData.price),
       quantity: parseInt(formData.quantity),
       category: formData.category.trim(),
     });
-
-    // Reset form
-    setFormData({
-      name: '',
-      price: '',
-      quantity: '',
-      category: '',
-    });
-    setErrors({
-      name: false,
-      price: false,
-      quantity: false,
-      category: false,
-    });
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Add New Product</DialogTitle>
+      <DialogTitle>Edit Product</DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent>
           <Grid container spacing={2}>
@@ -155,7 +153,7 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
             color="primary"
             disabled={Object.values(errors).some(Boolean)}
           >
-            Add Product
+            Save Changes
           </Button>
         </DialogActions>
       </form>
@@ -163,4 +161,4 @@ const AddProductModal = ({ open, onClose, onAdd }: AddProductModalProps) => {
   );
 };
 
-export default AddProductModal; 
+export default EditProductModal; 

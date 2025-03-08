@@ -12,152 +12,171 @@ import {
   FormControl,
   InputLabel,
   Stack,
+  Alert,
+  CircularProgress,
 } from '@mui/material';
-import { Product } from '../../server/src/models/product.model';
+import { Product } from '../types/inventory';
+import { productsApi } from '../services/api';
 import ProductCard from '../components/ProductCard';
 
 const Dashboard = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(9);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage] = useState(9);
   const [selectedCategory, setSelectedCategory] = useState('all');
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
 
   const fetchProducts = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/products', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      setLoading(true);
+      setError('');
+      const response = await productsApi.getAll({
+        search: searchTerm || undefined,
+        category: selectedCategory === 'all' ? undefined : selectedCategory,
+        page,
+        limit: itemsPerPage
       });
-      const data = await response.json();
-      if (data.success) {
-        setProducts(data.data);
-      } else {
-        setError(data.message);
-      }
-    } catch (err) {
-      setError('Failed to fetch products');
+      
+      setProducts(response.data.data);
+      setTotalItems(response.data.total);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch products');
+      console.error('Error fetching products:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const categories = ['all', ...new Set(products.map(product => product.category))];
-
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const paginatedProducts = filteredProducts.slice(
-    (page - 1) * itemsPerPage,
-    page * itemsPerPage
-  );
-
-  const pageCount = Math.ceil(filteredProducts.length / itemsPerPage);
+  useEffect(() => {
+    fetchProducts();
+  }, [page, itemsPerPage, searchTerm, selectedCategory]);
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+    setPage(1);
+  };
+
+  const handleCategoryChange = (event: any) => {
+    setSelectedCategory(event.target.value);
+    setPage(1);
+  };
+
+  const categories = ['all', ...new Set(products.map(product => product.category))];
+
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Grid container spacing={3}>
+        {/* Welcome Section */}
         <Grid item xs={12}>
-          <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
+          <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h4" gutterBottom>
               Welcome to AK Store Dashboard
             </Typography>
-            <Typography variant="body1" gutterBottom>
+            <Typography variant="body1" color="text.secondary">
               Manage your inventory and track your products efficiently.
             </Typography>
           </Paper>
         </Grid>
+
+        {/* Filters Section */}
         <Grid item xs={12}>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <TextField
-              label="Search Products"
-              variant="outlined"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1);
-              }}
-              sx={{ flexGrow: 1, minWidth: '200px' }}
-            />
-            <FormControl sx={{ minWidth: '150px' }}>
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={selectedCategory}
-                label="Category"
-                onChange={(e) => {
-                  setSelectedCategory(e.target.value);
-                  setPage(1);
-                }}
-              >
-                {categories.map((category) => (
-                  <MenuItem key={category} value={category}>
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl sx={{ minWidth: '150px' }}>
-              <InputLabel>Items per page</InputLabel>
-              <Select
-                value={itemsPerPage}
-                label="Items per page"
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setPage(1);
-                }}
-              >
-                <MenuItem value={9}>9</MenuItem>
-                <MenuItem value={18}>18</MenuItem>
-                <MenuItem value={27}>27</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <TextField
+                label="Search Products"
+                variant="outlined"
+                value={searchTerm}
+                onChange={handleSearch}
+                sx={{ flexGrow: 1, minWidth: '200px' }}
+              />
+              <FormControl sx={{ minWidth: '200px' }}>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={selectedCategory}
+                  label="Category"
+                  onChange={handleCategoryChange}
+                >
+                  {categories.map((category) => (
+                    <MenuItem key={category} value={category}>
+                      {category === 'all' ? 'All Categories' : category}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </Paper>
         </Grid>
+
+        {/* Error Message */}
         {error && (
           <Grid item xs={12}>
-            <Typography color="error">{error}</Typography>
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
           </Grid>
         )}
-        {paginatedProducts.map((product) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-            <ProductCard product={product} />
-          </Grid>
-        ))}
-        {filteredProducts.length > 0 && (
+
+        {/* Loading State */}
+        {loading && (
           <Grid item xs={12}>
-            <Stack spacing={2} alignItems="center" sx={{ mt: 4 }}>
-              <Pagination
-                count={pageCount}
-                page={page}
-                onChange={handlePageChange}
-                color="primary"
-                size="large"
-              />
-              <Typography variant="body2" color="text.secondary">
-                Showing {Math.min(itemsPerPage, filteredProducts.length)} of {filteredProducts.length} products
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+              <CircularProgress />
+            </Box>
+          </Grid>
+        )}
+
+        {/* Products Grid */}
+        {!loading && products.length > 0 && (
+          <>
+            <Grid item xs={12}>
+              <Grid container spacing={3}>
+                {products.map((product) => (
+                  <Grid item xs={12} sm={6} md={4} key={product.id}>
+                    <ProductCard
+                      product={product}
+                      variant="dashboard"
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Grid>
+
+            {/* Pagination */}
+            {totalItems > itemsPerPage && (
+              <Grid item xs={12}>
+                <Stack spacing={2} alignItems="center" sx={{ mt: 4 }}>
+                  <Pagination
+                    count={Math.ceil(totalItems / itemsPerPage)}
+                    page={page}
+                    onChange={handlePageChange}
+                    color="primary"
+                    size="large"
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    Showing {Math.min(itemsPerPage, products.length)} of {totalItems} products
+                  </Typography>
+                </Stack>
+              </Grid>
+            )}
+          </>
+        )}
+
+        {/* No Products Found */}
+        {!loading && products.length === 0 && (
+          <Grid item xs={12}>
+            <Paper sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant="h6" color="text.secondary">
+                No products found
               </Typography>
-            </Stack>
-          </Grid>
-        )}
-        {filteredProducts.length === 0 && (
-          <Grid item xs={12}>
-            <Typography variant="h6" textAlign="center" sx={{ mt: 4 }}>
-              No products found
-            </Typography>
+            </Paper>
           </Grid>
         )}
       </Grid>

@@ -12,29 +12,36 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  ssl: {
-    rejectUnauthorized: true
-  }
+  ssl: process.env.NODE_ENV === 'production' ? {
+    rejectUnauthorized: false
+  } : undefined
 });
 
 // Test database connection
-const testConnection = async () => {
+export const testConnection = async () => {
   try {
     const connection = await pool.getConnection();
     console.log('Database connection successful');
     connection.release();
   } catch (error) {
     console.error('Database connection failed:', error);
-    process.exit(1);
+    throw error;
   }
 };
 
-testConnection();
-
 export const db = {
-  query: async <T>(sql: string, params?: any[]): Promise<T> => {
-    const [rows] = await pool.execute(sql, params);
-    return rows as T;
+  query: async <T>(sql: string, params?: any[]): Promise<[T, mysql.FieldPacket[]]> => {
+    try {
+      const result = await pool.execute(sql, params);
+      return result as [T, mysql.FieldPacket[]];
+    } catch (error) {
+      console.error('Database query error:', {
+        sql,
+        params,
+        error
+      });
+      throw error;
+    }
   },
   
   transaction: async <T>(callback: (connection: mysql.Connection) => Promise<T>): Promise<T> => {
@@ -47,6 +54,7 @@ export const db = {
       return result;
     } catch (error) {
       await connection.rollback();
+      console.error('Transaction error:', error);
       throw error;
     } finally {
       connection.release();

@@ -9,12 +9,12 @@ import {
   IconButton,
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { Product } from '../../server/src/models/product.model';
+import { Product } from '../types/inventory';
 
 interface ProductCardProps {
   product: Product;
   onEdit?: (product: Product) => void;
-  onDelete?: (id: number) => void;
+  onDelete?: (id: string) => void;
   variant?: 'dashboard' | 'compact';
 }
 
@@ -28,6 +28,12 @@ const ProductCard = ({ product, onEdit, onDelete, variant = 'dashboard' }: Produ
   const formatPrice = (price: number | string) => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
     return !isNaN(numPrice) ? numPrice.toFixed(2) : '0.00';
+  };
+
+  const handleDelete = () => {
+    if (onDelete && product.id) {
+      onDelete(product.id);
+    }
   };
 
   return (
@@ -77,29 +83,26 @@ const ProductCard = ({ product, onEdit, onDelete, variant = 'dashboard' }: Produ
           Category: {product.category}
         </Typography>
       </CardContent>
-      <CardActions sx={{ justifyContent: 'space-between', p: 2 }}>
-        {variant === 'dashboard' ? (
-          <>
-            <Button size="small" color="primary" onClick={() => onEdit?.(product)}>
-              Edit
-            </Button>
-            <Button size="small" color="primary">
-              View Details
-            </Button>
-          </>
-        ) : (
-          <>
-            <IconButton size="small" color="primary" onClick={() => onEdit?.(product)}>
-              <EditIcon />
-            </IconButton>
-            <IconButton 
-              size="small" 
-              color="error" 
-              onClick={() => product.id && onDelete?.(product.id)}
-            >
-              <DeleteIcon />
-            </IconButton>
-          </>
+      <CardActions sx={{ justifyContent: 'flex-end', p: 2, gap: 1 }}>
+        {onEdit && (
+          <Button 
+            size="small" 
+            color="primary" 
+            startIcon={<EditIcon />}
+            onClick={() => onEdit(product)}
+          >
+            Edit
+          </Button>
+        )}
+        {onDelete && (
+          <Button 
+            size="small" 
+            color="error" 
+            startIcon={<DeleteIcon />}
+            onClick={handleDelete}
+          >
+            Delete
+          </Button>
         )}
       </CardActions>
     </Card>
