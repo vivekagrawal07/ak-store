@@ -1,8 +1,11 @@
 const API_URL = import.meta.env.PROD 
-  ? 'https://ak-store-server.vercel.app/api'
+  ? 'https://ak-store-vivekagrawal07.vercel.app/api'
   : 'http://localhost:5000/api';
 
-export const getApiUrl = (endpoint: string) => `${API_URL}${endpoint}`;
+export const getApiUrl = (endpoint: string) => {
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${API_URL}${path}`;
+};
 
 export const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('token');
@@ -12,16 +15,21 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
     ...options.headers,
   };
 
-  const response = await fetch(getApiUrl(endpoint), {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(getApiUrl(endpoint), {
+      ...options,
+      headers,
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.message || 'Something went wrong');
+    if (!response.ok) {
+      throw new Error(data.message || 'Something went wrong');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
   }
-
-  return data;
 }; 

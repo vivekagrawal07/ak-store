@@ -31,13 +31,16 @@ app.use('/api/auth', authRoutes);
 // Error handling
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-
+// For local development
 if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
 }
 
-// Export for Vercel
-export default app; 
+// For Vercel
+export default app;
+
+// For Vercel serverless functions
+module.exports = app; 
