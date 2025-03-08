@@ -3,8 +3,8 @@ import { Product, Category, StockMovement } from '../types/inventory';
 
 const isProd = import.meta.env.PROD;
 const API_BASE_URL = isProd 
-  ? 'https://ak-store-server.vercel.app'
-  : 'http://localhost:5000';
+  ? import.meta.env.VITE_PROD_API_URL || 'https://ak-store-server.vercel.app/api'
+  : import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 console.log('Environment:', isProd ? 'production' : 'development');
 console.log('API Base URL:', API_BASE_URL);
@@ -70,7 +70,7 @@ api.interceptors.response.use(
 // Auth API
 export const authApi = {
   login: async (credentials: { email: string; password: string }) => {
-    const response = await api.post<AuthResponse>('/api/auth/login', credentials);
+    const response = await api.post<AuthResponse>('/auth/login', credentials);
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -78,7 +78,7 @@ export const authApi = {
     return response;
   },
   register: async (credentials: { name: string; email: string; password: string }) => {
-    const response = await api.post<AuthResponse>('/api/auth/register', credentials);
+    const response = await api.post<AuthResponse>('/auth/register', credentials);
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
@@ -94,26 +94,26 @@ export const authApi = {
 // Products API
 export const productsApi = {
   getAll: (params?: { search?: string; category?: string; page?: number; limit?: number }) => 
-    api.get<{ data: Product[]; total: number }>('/api/products', { params }),
-  getById: (id: string) => api.get<Product>(`/api/products/${id}`),
-  create: (product: Omit<Product, 'id'>) => api.post<Product>('/api/products', product),
-  update: (id: string, product: Partial<Product>) => api.put<Product>(`/api/products/${id}`, product),
-  delete: (id: string) => api.delete(`/api/products/${id}`),
+    api.get<{ data: Product[]; total: number }>('/products', { params }),
+  getById: (id: string) => api.get<Product>(`/products/${id}`),
+  create: (product: Omit<Product, 'id'>) => api.post<Product>('/products', product),
+  update: (id: string, product: Partial<Product>) => api.put<Product>(`/products/${id}`, product),
+  delete: (id: string) => api.delete(`/products/${id}`),
 };
 
 // Categories API
 export const categoriesApi = {
-  getAll: () => api.get<Category[]>('/api/categories'),
-  getById: (id: string) => api.get<Category>(`/api/categories/${id}`),
-  create: (category: Omit<Category, 'id'>) => api.post<Category>('/api/categories', category),
-  update: (id: string, category: Partial<Category>) => api.put<Category>(`/api/categories/${id}`, category),
-  delete: (id: string) => api.delete(`/api/categories/${id}`),
+  getAll: () => api.get<Category[]>('/categories'),
+  getById: (id: string) => api.get<Category>(`/categories/${id}`),
+  create: (category: Omit<Category, 'id'>) => api.post<Category>('/categories', category),
+  update: (id: string, category: Partial<Category>) => api.put<Category>(`/categories/${id}`, category),
+  delete: (id: string) => api.delete(`/categories/${id}`),
 };
 
 // Stock Movements API
 export const stockMovementsApi = {
-  getAll: () => api.get<StockMovement[]>('/api/stock-movements'),
-  create: (movement: Omit<StockMovement, 'id'>) => api.post<StockMovement>('/api/stock-movements', movement),
+  getAll: () => api.get<StockMovement[]>('/stock-movements'),
+  create: (movement: Omit<StockMovement, 'id'>) => api.post<StockMovement>('/stock-movements', movement),
 };
 
 export default api; 
