@@ -1,3 +1,25 @@
+export interface Item {
+  id: number;
+  name: string;
+  quantity: number;
+  price: string; // Coming from MySQL as string
+  created_at: string;
+}
+
+export interface CreateItemDTO {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface UpdateQuantityDTO {
+  quantity: number;
+}
+
+export interface UpdatePriceDTO {
+  price: number;
+}
+
 export interface Product {
   id: string;
   name: string;

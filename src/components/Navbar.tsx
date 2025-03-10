@@ -37,17 +37,17 @@ const Navbar = () => {
     navigate('/login');
   };
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Products', icon: <InventoryIcon />, path: '/products' },
+  const pages = [
+    { name: 'Dashboard', path: '/', icon: <DashboardIcon /> },
+    { name: 'Items', path: '/items', icon: <InventoryIcon /> }
   ];
 
   const drawer = (
     <List>
-      {menuItems.map((item) => (
+      {pages.map((item) => (
         <ListItem
           button
-          key={item.text}
+          key={item.name}
           onClick={() => {
             navigate(item.path);
             if (isMobile) handleDrawerToggle();
@@ -55,7 +55,7 @@ const Navbar = () => {
           selected={location.pathname === item.path}
         >
           <ListItemIcon>{item.icon}</ListItemIcon>
-          <ListItemText primary={item.text} />
+          <ListItemText primary={item.name} />
         </ListItem>
       ))}
     </List>

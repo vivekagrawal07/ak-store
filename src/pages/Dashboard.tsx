@@ -1,182 +1,231 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
+  Typography,
   Grid,
   Paper,
-  Typography,
-  TextField,
   Box,
-  Pagination,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Stack,
-  Alert,
-  CircularProgress,
+  Button,
+  TextField,
+  InputAdornment,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
-import { Product } from '../types/inventory';
-import { productsApi } from '../services/api';
-import ProductCard from '../components/ProductCard';
+import { Search as SearchIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { useItems } from '../hooks/useItems';
+import { ItemCard } from '../components/ItemCard';
+import { Item } from '../types/inventory';
+
+const ROTATION_INTERVAL = 30000; // 30 seconds
+const FEATURED_ITEMS_COUNT = 6;
 
 const Dashboard = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  
+  const { items, isLoading, error, updateQuantity } = useItems();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage] = useState(9);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [featuredItems, setFeaturedItems] = useState<Item[]>([]);
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const response = await productsApi.getAll({
-        search: searchTerm || undefined,
-        category: selectedCategory === 'all' ? undefined : selectedCategory,
-        page,
-        limit: itemsPerPage
-      });
-      
-      setProducts(response.data.data);
-      setTotalItems(response.data.total);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch products');
-      console.error('Error fetching products:', err);
-    } finally {
-      setLoading(false);
-    }
+  // Get items with low stock (quantity < 5)
+  const lowStockItems = items?.filter(item => item.quantity < 5) || [];
+
+  // Filter items based on search
+  const filteredItems = items?.filter(item => 
+    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  // Function to get random items
+  const getRandomItems = (allItems: Item[], count: number) => {
+    const shuffled = [...allItems].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
   };
 
+  // Update featured items every 30 seconds
   useEffect(() => {
-    fetchProducts();
-  }, [page, itemsPerPage, searchTerm, selectedCategory]);
+    if (!items?.length) return;
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
-    setPage(value);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const updateFeaturedItems = () => {
+      setFeaturedItems(getRandomItems(items, FEATURED_ITEMS_COUNT));
+    };
+
+    // Initial set
+    updateFeaturedItems();
+
+    // Set up interval
+    const interval = setInterval(updateFeaturedItems, ROTATION_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [items]);
+
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
+        <Typography color="error" sx={{ mt: 2 }}>
+          Error loading dashboard data
+        </Typography>
+      </Container>
+    );
+  }
+
+  const gridItemSize = {
+    xs: 12,
+    sm: 6,
+    md: 4,
+    lg: 4
   };
-
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-    setPage(1);
-  };
-
-  const handleCategoryChange = (event: any) => {
-    setSelectedCategory(event.target.value);
-    setPage(1);
-  };
-
-  const categories = ['all', ...new Set(products.map(product => product.category))];
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Grid container spacing={3}>
-        {/* Welcome Section */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Typography variant="h4" gutterBottom>
-              Welcome to AK Store Dashboard
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Manage your inventory and track your products efficiently.
-            </Typography>
-          </Paper>
-        </Grid>
+    <Container 
+      maxWidth="lg" 
+      sx={{ 
+        px: { xs: 2, sm: 3, md: 4 },
+        py: { xs: 2, sm: 3 }
+      }}
+    >
+      <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+        <Typography 
+          variant={isMobile ? "h5" : "h4"} 
+          component="h1" 
+          gutterBottom
+          sx={{ mb: { xs: 2, sm: 3 } }}
+        >
+          Dashboard
+        </Typography>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search items..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ 
+            mb: { xs: 2, sm: 3 },
+            '& .MuiOutlinedInput-root': {
+              borderRadius: { xs: 1, sm: 2 }
+            }
+          }}
+        />
+      </Box>
 
-        {/* Filters Section */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2, mb: 3 }}>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <TextField
-                label="Search Products"
-                variant="outlined"
-                value={searchTerm}
-                onChange={handleSearch}
-                sx={{ flexGrow: 1, minWidth: '200px' }}
-              />
-              <FormControl sx={{ minWidth: '200px' }}>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={selectedCategory}
-                  label="Category"
-                  onChange={handleCategoryChange}
-                >
-                  {categories.map((category) => (
-                    <MenuItem key={category} value={category}>
-                      {category === 'all' ? 'All Categories' : category}
-                    </MenuItem>
+      <Grid container spacing={{ xs: 2, sm: 3 }}>
+        {/* Search Results Section */}
+        {searchTerm && (
+          <Grid item xs={12}>
+            <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+              <Typography 
+                variant={isMobile ? "h6" : "h5"} 
+                gutterBottom
+                sx={{ mb: { xs: 1.5, sm: 2 } }}
+              >
+                Search Results
+              </Typography>
+              {filteredItems.length > 0 ? (
+                <Grid container spacing={{ xs: 2, sm: 3 }}>
+                  {filteredItems.map(item => (
+                    <Grid item {...gridItemSize} key={item.id}>
+                      <ItemCard
+                        item={item}
+                        onUpdateQuantity={updateQuantity}
+                        variant="dashboard"
+                      />
+                    </Grid>
                   ))}
-                </Select>
-              </FormControl>
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Error Message */}
-        {error && (
-          <Grid item xs={12}>
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          </Grid>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-              <CircularProgress />
+                </Grid>
+              ) : (
+                <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Typography color="textSecondary" align="center">
+                    No items found matching "{searchTerm}"
+                  </Typography>
+                </Paper>
+              )}
             </Box>
           </Grid>
         )}
 
-        {/* Products Grid */}
-        {!loading && products.length > 0 && (
-          <>
-            <Grid item xs={12}>
-              <Grid container spacing={3}>
-                {products.map((product) => (
-                  <Grid item xs={12} sm={6} md={4} key={product.id}>
-                    <ProductCard
-                      product={product}
+        {/* Low Stock Items Section */}
+        {!searchTerm && lowStockItems.length > 0 && (
+          <Grid item xs={12}>
+            <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+              <Typography 
+                variant={isMobile ? "h6" : "h5"} 
+                gutterBottom 
+                color="error"
+                sx={{ mb: { xs: 1.5, sm: 2 } }}
+              >
+                Low Stock Items
+              </Typography>
+              <Grid container spacing={{ xs: 2, sm: 3 }}>
+                {lowStockItems.map(item => (
+                  <Grid item {...gridItemSize} key={item.id}>
+                    <ItemCard
+                      item={item}
+                      onUpdateQuantity={updateQuantity}
                       variant="dashboard"
                     />
                   </Grid>
                 ))}
               </Grid>
-            </Grid>
-
-            {/* Pagination */}
-            {totalItems > itemsPerPage && (
-              <Grid item xs={12}>
-                <Stack spacing={2} alignItems="center" sx={{ mt: 4 }}>
-                  <Pagination
-                    count={Math.ceil(totalItems / itemsPerPage)}
-                    page={page}
-                    onChange={handlePageChange}
-                    color="primary"
-                    size="large"
-                  />
-                  <Typography variant="body2" color="text.secondary">
-                    Showing {Math.min(itemsPerPage, products.length)} of {totalItems} products
-                  </Typography>
-                </Stack>
-              </Grid>
-            )}
-          </>
+            </Box>
+          </Grid>
         )}
 
-        {/* No Products Found */}
-        {!loading && products.length === 0 && (
+        {/* Featured Items Section */}
+        {!searchTerm && (
           <Grid item xs={12}>
-            <Paper sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="h6" color="text.secondary">
-                No products found
+            <Box sx={{ 
+              mb: { xs: 1, sm: 2 }, 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
+              justifyContent: 'space-between', 
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              gap: { xs: 1, sm: 0 }
+            }}>
+              <Typography 
+                variant={isMobile ? "h6" : "h5"} 
+                sx={{ mb: { xs: 1, sm: 0 } }}
+              >
+                Featured Items
               </Typography>
-            </Paper>
+              <Button 
+                variant="outlined"
+                size={isMobile ? "small" : "medium"}
+                onClick={() => navigate('/items')}
+                sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}
+              >
+                View All Items
+              </Button>
+            </Box>
+            {isLoading ? (
+              <Typography sx={{ p: { xs: 2, sm: 3 } }}>Loading...</Typography>
+            ) : featuredItems.length > 0 ? (
+              <Grid container spacing={{ xs: 2, sm: 3 }}>
+                {featuredItems.map(item => (
+                  <Grid item {...gridItemSize} key={item.id}>
+                    <ItemCard
+                      item={item}
+                      onUpdateQuantity={updateQuantity}
+                      variant="dashboard"
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+                <Typography color="textSecondary" align="center">
+                  No items found
+                </Typography>
+              </Paper>
+            )}
           </Grid>
         )}
       </Grid>

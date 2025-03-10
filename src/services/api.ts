@@ -1,12 +1,9 @@
 import axios from 'axios';
-import { Product, Category, StockMovement } from '../types/inventory';
+import { Product, Category, StockMovement, Item, CreateItemDTO, UpdateItemDTO } from '../types/inventory';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-const isProd = import.meta.env.PROD;
-const API_BASE_URL = isProd 
-  ? import.meta.env.VITE_PROD_API_URL || 'https://ak-store-vivek-agrawal-projects.vercel.app/api'
-  : import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = 'https://server-git-main-vivek-agrawal-projects.vercel.app/api';
 
-console.log('Environment:', isProd ? 'production' : 'development');
 console.log('API Base URL:', API_BASE_URL);
 
 interface User {
@@ -114,6 +111,116 @@ export const categoriesApi = {
 export const stockMovementsApi = {
   getAll: () => api.get<StockMovement[]>('/stock-movements'),
   create: (movement: Omit<StockMovement, 'id'>) => api.post<StockMovement>('/stock-movements', movement),
+};
+
+// Items API endpoints
+export const itemsApi = {
+  // Get all items
+  getAll: async (): Promise<Item[]> => {
+    const response = await api.get('/items');
+    return response.data.map((item: any) => ({
+      ...item,
+      price: parseFloat(item.price),
+      quantity: parseInt(item.quantity)
+    }));
+  },
+
+  // Get single item by ID
+  getById: async (id: number): Promise<Item> => {
+    const response = await api.get(`/items/${id}`);
+    const item = response.data;
+    return {
+      ...item,
+      price: parseFloat(item.price),
+      quantity: parseInt(item.quantity)
+    };
+  },
+
+  // Create new item
+  create: async (data: CreateItemDTO): Promise<Item> => {
+    // Validate input before sending
+    if (!data.name || typeof data.quantity !== 'number' || typeof data.price !== 'number') {
+      throw new Error('Name, quantity, and price are required');
+    }
+    if (data.quantity < 0) {
+      throw new Error('Quantity cannot be negative');
+    }
+    if (data.price < 0) {
+      throw new Error('Price cannot be negative');
+    }
+
+    const response = await api.post('/items', data);
+    const item = response.data;
+    return {
+      ...item,
+      price: parseFloat(item.price),
+      quantity: parseInt(item.quantity)
+    };
+  },
+
+  // Update item quantity
+  updateQuantity: async (id: number, quantity: number): Promise<void> => {
+    if (typeof quantity !== 'number' || quantity < 0) {
+      throw new Error('Valid quantity is required');
+    }
+    await api.patch(`/items/${id}/quantity`, { quantity });
+  },
+
+  // Update item price
+  updatePrice: async (id: number, price: number): Promise<void> => {
+    if (typeof price !== 'number' || price < 0) {
+      throw new Error('Valid price is required');
+    }
+    await api.patch(`/items/${id}/price`, { price });
+  }
+};
+
+// React Query Hooks for Items
+export const useItems = () => {
+  return useQuery({
+    queryKey: ['items'],
+    queryFn: itemsApi.getAll,
+  });
+};
+
+export const useItem = (id: number) => {
+  return useQuery({
+    queryKey: ['items', id],
+    queryFn: () => itemsApi.getById(id),
+    enabled: !!id,
+  });
+};
+
+export const useCreateItem = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: itemsApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+    },
+  });
+};
+
+export const useUpdateItemQuantity = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, quantity }: { id: number; quantity: number }) => 
+      itemsApi.updateQuantity(id, quantity),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+    },
+  });
+};
+
+export const useUpdateItemPrice = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, price }: { id: number; price: number }) => 
+      itemsApi.updatePrice(id, price),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+    },
+  });
 };
 
 export default api; 
