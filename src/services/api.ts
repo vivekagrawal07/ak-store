@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Product, Category, StockMovement, Item, CreateItemDTO, UpdateItemDTO } from '../types/inventory';
+import { Product, Category, StockMovement, Item, CreateItemDTO, UpdateQuantityDTO, UpdatePriceDTO } from '../types/inventory';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const API_BASE_URL = 'https://server-git-main-vivek-agrawal-projects.vercel.app/api';
@@ -15,6 +15,14 @@ interface User {
 interface AuthResponse {
   user: User;
   token: string;
+}
+
+interface ItemResponse {
+  id: number;
+  name: string;
+  quantity: string;
+  price: string;
+  created_at: string;
 }
 
 const api = axios.create({
@@ -117,21 +125,21 @@ export const stockMovementsApi = {
 export const itemsApi = {
   // Get all items
   getAll: async (): Promise<Item[]> => {
-    const response = await api.get('/items');
-    return response.data.map((item: any) => ({
+    const response = await api.get<ItemResponse[]>('/items');
+    return response.data.map((item) => ({
       ...item,
-      price: parseFloat(item.price),
+      price: item.price,
       quantity: parseInt(item.quantity)
     }));
   },
 
   // Get single item by ID
   getById: async (id: number): Promise<Item> => {
-    const response = await api.get(`/items/${id}`);
+    const response = await api.get<ItemResponse>(`/items/${id}`);
     const item = response.data;
     return {
       ...item,
-      price: parseFloat(item.price),
+      price: item.price,
       quantity: parseInt(item.quantity)
     };
   },
@@ -149,12 +157,15 @@ export const itemsApi = {
       throw new Error('Price cannot be negative');
     }
 
-    const response = await api.post('/items', data);
-    const item = response.data;
+    const response = await api.post<ItemResponse>('/items', {
+      ...data,
+      price: data.price.toString()
+    });
+    
     return {
-      ...item,
-      price: parseFloat(item.price),
-      quantity: parseInt(item.quantity)
+      ...response.data,
+      price: response.data.price,
+      quantity: parseInt(response.data.quantity)
     };
   },
 
@@ -163,7 +174,7 @@ export const itemsApi = {
     if (typeof quantity !== 'number' || quantity < 0) {
       throw new Error('Valid quantity is required');
     }
-    await api.patch(`/items/${id}/quantity`, { quantity });
+    await api.patch(`/items/${id}/quantity`, { quantity } as UpdateQuantityDTO);
   },
 
   // Update item price
@@ -171,7 +182,7 @@ export const itemsApi = {
     if (typeof price !== 'number' || price < 0) {
       throw new Error('Valid price is required');
     }
-    await api.patch(`/items/${id}/price`, { price });
+    await api.patch(`/items/${id}/price`, { price } as UpdatePriceDTO);
   }
 };
 
