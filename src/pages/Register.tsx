@@ -8,9 +8,17 @@ import {
   Box,
   Link,
   Alert,
+  CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../services/authApi';
+
+interface FormErrors {
+  username?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+}
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -19,35 +27,73 @@ const Register = () => {
     password: '',
     confirmPassword: '',
   });
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+    let isValid = true;
+
+    // Username validation
+    if (formData.username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters long';
+      isValid = false;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+      isValid = false;
+    }
+
+    // Password validation
+    if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters long';
+      isValid = false;
+    }
+
+    // Confirm password validation
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: value
     }));
+    // Clear error when user starts typing
+    setErrors(prev => ({
+      ...prev,
+      [name]: undefined
+    }));
+    setServerError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setServerError('');
     
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
+    if (!validateForm()) {
       return;
     }
 
+    setLoading(true);
     try {
       const { confirmPassword, ...registerData } = formData;
       await authApi.register(registerData);
-      navigate('/');
+      navigate('/login', { state: { message: 'Registration successful! Please login.' } });
     } catch (err: any) {
-      setError(err.message || 'Failed to register. Please try again.');
+      setServerError(err.message);
     } finally {
       setLoading(false);
     }
@@ -60,9 +106,9 @@ const Register = () => {
           <Typography variant="h4" component="h1" gutterBottom align="center">
             Register
           </Typography>
-          {error && (
+          {serverError && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
+              {serverError}
             </Alert>
           )}
           <form onSubmit={handleSubmit}>
@@ -77,6 +123,8 @@ const Register = () => {
               autoFocus
               value={formData.username}
               onChange={handleChange}
+              error={!!errors.username}
+              helperText={errors.username}
             />
             <TextField
               margin="normal"
@@ -88,6 +136,8 @@ const Register = () => {
               autoComplete="email"
               value={formData.email}
               onChange={handleChange}
+              error={!!errors.email}
+              helperText={errors.email}
               type="email"
             />
             <TextField
@@ -101,6 +151,8 @@ const Register = () => {
               autoComplete="new-password"
               value={formData.password}
               onChange={handleChange}
+              error={!!errors.password}
+              helperText={errors.password}
             />
             <TextField
               margin="normal"
@@ -113,6 +165,8 @@ const Register = () => {
               autoComplete="new-password"
               value={formData.confirmPassword}
               onChange={handleChange}
+              error={!!errors.confirmPassword}
+              helperText={errors.confirmPassword}
             />
             <Button
               type="submit"
@@ -121,7 +175,14 @@ const Register = () => {
               sx={{ mt: 3, mb: 2 }}
               disabled={loading}
             >
-              {loading ? 'Registering...' : 'Register'}
+              {loading ? (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <CircularProgress size={24} color="inherit" sx={{ mr: 1 }} />
+                  Registering...
+                </Box>
+              ) : (
+                'Register'
+              )}
             </Button>
             <Box sx={{ textAlign: 'center' }}>
               <Link href="/login" variant="body2">
