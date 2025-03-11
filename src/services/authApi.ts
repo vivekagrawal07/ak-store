@@ -32,7 +32,7 @@ interface LoginData {
 export const authApi = {
   register: async (data: RegisterData): Promise<AuthResponse> => {
     try {
-      const response = await axios.post<AuthResponse>(`${API_URL}/register`, data);
+      const response = await axios.post<AuthResponse>(`${API_URL}/auth/register`, data);
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
