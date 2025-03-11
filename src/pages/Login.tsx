@@ -10,7 +10,7 @@ import {
   Alert,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { authApi } from '../services/api';
+import { authApi } from '../services/authApi';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -35,14 +35,10 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await authApi.login(formData);
-      const { user, token } = response.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      await authApi.login(formData);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to login. Please try again.');
+      setError(err.message || 'Failed to login. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -72,6 +68,7 @@ const Login = () => {
               autoFocus
               value={formData.email}
               onChange={handleChange}
+              type="email"
             />
             <TextField
               margin="normal"

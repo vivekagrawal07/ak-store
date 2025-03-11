@@ -21,7 +21,7 @@ import { Item, CreateItemDTO } from '../types/inventory';
 export const ItemsPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { items, isLoading, error, createItem, updateQuantity, updatePrice } = useItems();
+  const { items, isLoading, error, createItem, updateQuantity, updatePrice, deleteItem } = useItems();
   const [formOpen, setFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
@@ -65,6 +65,15 @@ export const ItemsPage: React.FC = () => {
   const handleEdit = (item: Item) => {
     setEditingItem(item);
     setFormOpen(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteItem.mutateAsync(id);
+      setSuccessMessage('Item deleted successfully');
+    } catch (err) {
+      console.error('Error deleting item:', err);
+    }
   };
 
   if (error) {
@@ -118,6 +127,7 @@ export const ItemsPage: React.FC = () => {
                 <ItemCard
                   item={item}
                   onEdit={handleEdit}
+                  onDelete={handleDelete}
                   onUpdateQuantity={handleUpdateQuantity}
                   variant="full"
                 />
@@ -138,6 +148,7 @@ export const ItemsPage: React.FC = () => {
           <ItemList
             items={items}
             onEdit={handleEdit}
+            onDelete={handleDelete}
             onUpdateQuantity={handleUpdateQuantity}
           />
         )}

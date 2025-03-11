@@ -7,7 +7,9 @@ export const useItems = () => {
 
   const { data: items = [], isLoading, error } = useQuery({
     queryKey: ['items'],
-    queryFn: itemsApi.getAll
+    queryFn: itemsApi.getAll,
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   const createItem = useMutation({
@@ -33,12 +35,20 @@ export const useItems = () => {
     }
   });
 
+  const deleteItem = useMutation({
+    mutationFn: (id: number) => itemsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+    }
+  });
+
   return {
     items,
     isLoading,
     error,
     createItem,
     updateQuantity,
-    updatePrice
+    updatePrice,
+    deleteItem
   };
 }; 

@@ -10,11 +10,11 @@ import {
   Alert,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { authApi } from '../services/api';
+import { authApi } from '../services/authApi';
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    name: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -44,14 +44,10 @@ const Register = () => {
 
     try {
       const { confirmPassword, ...registerData } = formData;
-      const response = await authApi.register(registerData);
-      const { user, token } = response.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      await authApi.register(registerData);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to register. Please try again.');
+      setError(err.message || 'Failed to register. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -74,12 +70,12 @@ const Register = () => {
               margin="normal"
               required
               fullWidth
-              id="name"
-              label="Full Name"
-              name="name"
-              autoComplete="name"
+              id="username"
+              label="Username"
+              name="username"
+              autoComplete="username"
               autoFocus
-              value={formData.name}
+              value={formData.username}
               onChange={handleChange}
             />
             <TextField
@@ -92,6 +88,7 @@ const Register = () => {
               autoComplete="email"
               value={formData.email}
               onChange={handleChange}
+              type="email"
             />
             <TextField
               margin="normal"
